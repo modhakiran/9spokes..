@@ -1,0 +1,92 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello
+  namespace: staging
+spec:
+  selector:
+    matchLabels:
+      run: hello
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: hello
+    spec:
+      containers:
+      - name: hello
+        image: hello:latest
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-svc
+  namespace: staging
+  labels:
+    run: hello
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+  selector:
+    run: hello
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: p2
+  namespace: kube-system
+spec:
+  selector:
+      matchLabels:
+        name: p2 # Label selector that determines which Pods belong to the DaemonSet
+  template:
+    metadata:
+      labels:
+        name: p2 # Pod template's label selector
+    spec:
+      nodeSelector:
+        type: prod # Node label selector that determines on which nodes Pod should be scheduled
+                   # In this case, Pods are only scheduled to nodes bearing the label "type: prod"
+      containers:
+      - name: p2
+        image: nginx:latest
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: staging
+  labels:
+    test: liveness
+  name: p3
+spec:
+  containers:
+  - name: c1
+    image: k8s.gcr.io/busybox
+    args:
+    - /bin/sh
+    - -c
+    - touch ready.txt; sleep 600
+    livenessProbe:
+      exec:
+        command:
+        - cat
+        - ready.txt
+      initialDelaySeconds: 300
+      periodSeconds: 5
+  - name: c2
+    image: k8s.gcr.io/busybox
+    args:
+    - /bin/sh
+    - -c
+    - touch ready.txt; sleep 600
+    livenessProbe:
+      exec:
+        command:
+        - cat
+        - ready.txt
+      initialDelaySeconds: 300
+      periodSeconds: 5
